@@ -6,15 +6,24 @@
     <script src="https://cdn.jsdelivr.net/npm/vue@2/dist/vue.js"></script>
     <style>
         body {
-            margin: 0;
+            width: 1080px;
+            margin: 0 auto;
             padding-top: 25px;
         }
         select {
             width: 50px;
         }
         img {
-            height: 150px;
-            width: 150px;
+            height: 135px;
+            width: 135px;
+        }
+        h4 {
+            display: inline;
+        }
+        span {
+            display: inline-block;
+            width: 120px;
+            margin: 4px 0px 4px 0px;
         }
         .search-container {
             margin: auto;
@@ -53,19 +62,38 @@
             border: solid 1px lightblue;
             padding: 10px;
             margin-bottom: 3px;
+            white-space: nowrap;
+        }
+        .avatarblock {
+            display: inline-block;
+            vertical-align: top;
+            margin-right: 30px;
         }
         .profileblock {
             display: inline-block;
-            vertical-align: middle;
+            width: 400px;
+            vertical-align: top;
             margin-right: 30px;
         }
-        .profileblock span {
+        .profileblock label {
             display: inline-block;
             width: 100px;
             margin: 4px 0px 4px 0px;
         }
-        .profileblock h4 {
-            display: inline;
+        .repoblock {
+            display: inline-block;
+            vertical-align: top;
+            margin-right: 30px;
+        }
+        .repoblock h1 {
+            font-size: 5em;
+            margin: 0;
+            text-align: center;
+        }  
+        .dateblock {
+            display: inline-block;
+            vertical-align: top;
+            margin-right: 30px;
         }
     </style>
 </head>
@@ -80,7 +108,7 @@
         </div>
         <div id="result-control" class="result-control">
             <div id="pagesize-select">
-                <span>Results per page</span>
+                <label>Results per page</label>
                 <select v-model="pageSize" v-on:change="pageSizing">
                     <option value="5">5</option>
                     <option value="10">10</option>
@@ -90,7 +118,7 @@
                 </select>
             </div>
             <div id=pagenumber-select">
-                <span>Page</span>
+                <label>Page</label>
                 <select v-model="currentPage" v-on:change="doSearch">
                    <option v-for="index in totalPages"
                                :value="index">{{index}}</option>
@@ -122,23 +150,23 @@ const urlBase = 'https://api.github.com/search/users';
 Vue.component('searchresult',{
     props: ['user'],
     template: `<div id="result" class="result-container__result">
-                    <div class="profileblock">
+                    <div class="avatarblock">
                         <a :href="user.avatar_url" target="_new"><img :src="user.avatar_url"></a>
                     </div>
                     <div class="profileblock">
-                        <span>Username</span><h4>{{user.login}}</h4><br>
-                        <span>Real Name</span><h4>{{user.name}}</h4><br>
-                        <span>Email</span><h4>{{user.email}}</h4><br>
-                        <span>Profile</span><a :href="user.html_url" target="_new"><h4>{{user.html_url}}</h4></a><br>
-                        <span>Location</span><h4>{{user.location}}</h4>
+                        <label>Username</label><h4>{{user.login}}</h4><br>
+                        <label>Real Name</label><h4>{{user.name}}</h4><br>
+                        <label>Email</label><h4>{{user.email}}</h4><br>
+                        <label>Profile</label><a :href="user.html_url" target="_new"><h4>{{user.html_url}}</h4></a><br>
+                        <label>Location</label><h4>{{user.location}}</h4>
                     </div>
-                    <div class="profileblock">
-                        <span>Number of public repositories</span>
+                    <div class="repoblock">
+                        <span>Public Repositories</span>
                         <h1>{{user.public_repos}}</h1>
                     </div>
-                    <div class="profileblock">
-                        <span>Account created</span>{{user.created_at}}
-                        <span>Account updated</span>{{user.updated_at}}
+                    <div class="dateblock">
+                        <span>Account created</span><h4>{{user.DisplayCreate}}</h4><br>
+                        <span>Account updated</span><h4>{{user.DisplayUpdate}}</h4>
                     </div>
                </div>`
 });
@@ -223,7 +251,11 @@ var ghSearchApp = new Vue({
                     json.items.forEach(result => {
                         fetch(result.url)
                             .then(response => response.json())
-                            .then(user => this.searchResults.push(user));
+                            .then(user => {
+                                user.DisplayCreate = new Date(user.created_at).toDateString();
+                                user.DisplayUpdate = new Date(user.updated_at).toDateString();
+                                this.searchResults.push(user);
+                            });
                     });
                     // I don't like that this alert is buried here
                     if (callback instanceof Function)
