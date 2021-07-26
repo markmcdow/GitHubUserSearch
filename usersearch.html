@@ -95,6 +95,10 @@
             vertical-align: top;
             margin-right: 30px;
         }
+        .emptyresultmessage {
+            width: 10%;
+            margin: 0 auto;
+        }
     </style>
 </head>
 
@@ -103,7 +107,7 @@
     <div id="gh-search-app">
         <div id="search-container" class="search-container">
             <input class="search-container__input" v-model="searchInput" v-on:change="newSearchInput" placeholder="Enter name or email to search">
-            <button class="search-container__button" v-on:click="searchClick">Search</button>
+            <button class="search-container__button" :disabled="searchDisabled" v-on:click="searchClick">Search</button>
             <button class="search-container__button" v-on:click="resetClick">Reset</button>            
         </div>
         <div id="result-control" class="result-control">
@@ -127,6 +131,7 @@
             </div>            
          </div>
         <div id="result-container" class="result-container">
+            <div class="emptyresultmessage" v-if="noResults">No results</div>
             <searchresult v-for="row in searchResults"
                           v-bind:user="row"
                           v-bind:key="row.id">
@@ -182,8 +187,11 @@ var ghSearchApp = new Vue({
         totalPages: 1
     },
     computed: {
-        hasResults: function() {
-            return this.searchResults.length > 0;
+        noResults: function() {            
+            return this.totalPages == 0;
+        },
+        searchDisabled: function() {
+            return this.searchInput.length == 0;
         }
     },
     methods: {
@@ -192,6 +200,7 @@ var ghSearchApp = new Vue({
             this.searchResults = [];
             this.pageSize = 5;
             this.currentPage = 1;
+            this.totalPages = 1;
         },
         pageSizing: function() {
             this.currentPage = 1;
