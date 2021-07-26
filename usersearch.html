@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+
+<html>
+
+<head>
+    <script src="https://cdn.jsdelivr.net/npm/vue@2/dist/vue.js"></script>
+    <style>
+        body {
+            margin: 0;
+            padding-top: 25px;
+        }
+        .search-container {
+            margin: auto;
+            width: 50%;
+            white-space: nowrap;
+        }
+        .search-container__input {
+            display: inline;
+            box-sizing: border-box;
+            width: 60%;
+            margin: 0;
+            padding: 0;            
+        }
+        .search-container__button {
+            display: inline;
+            box-sizing: border-box;
+            width: 20%;
+            margin: 0;
+            padding: 0;
+        }
+        .result-container {
+            margin: 10px;
+        }
+        .result-container__result {
+            border: solid 1px lightblue;
+            padding: 10px;
+            margin-bottom: 3px;
+        }
+    </style>
+</head>
+
+<body>
+
+    <div id="gh-search-app">
+        <div id="search-container" class="search-container">
+            <input class="search-container__input" v-model="searchInput" placeholder="Enter name or email to search">
+            <button class="search-container__button" v-on:click="searchClick">Search</button>
+            <button class="search-container__button" v-on:click="resetClick">Reset</button>
+        </div>
+        <div id="result-container" class="result-container">
+            <searchresult v-for="row in searchResults"
+                          v-bind:user="row"
+                          v-bind:key="row.id">
+            </searchresult>
+        </div>
+    </div>   
+
+</body>
+
+<script>
+
+// email -          q=mark+in:email@type=Users&utf8=✓
+// partialname -    q=mark+in:fullname&type=Users
+// fullname -       q=fullname:mark+mc+dow&type=Users
+
+const emailPattern = /\S+@\S+\.\S+/;
+const emailMask = /@\S+\.\S+/;
+const whitespacePattern = /\s+/g;
+const urlBase = 'https://api.github.com/search/users';
+
+Vue.component('searchresult',{
+    props: ['user'],
+    template: `<div id="result" class="result-container__result">
+                    <p>Username: {{user.login}}</p>
+                    <p>Avatar: {{user.avatar_url}}</p>
+               </div>`
+})
+                // <p>Location: {{user.}}</p>
+                // <p>Real Name: {{user.}}</p>
+                // <p>Email: {{user.}}</p>
+                // <p>Number of public repositories: {{user.}}</p>
+                // <p>Account created: {{user.}}</p>
+                // <p>Account updated: {{user.}}</p>
+
+
+var ghSearchApp = new Vue({
+    el: '#gh-search-app',
+    data: {
+        searchInput: '',
+        searchResults: []
+    },
+    methods: {
+        resetClick: function() {
+            this.searchInput = '';
+            this.searchResults = [];
+        },
+        searchClick: function() {
+            let requestUrl = urlBase;
+            let str = this.searchInput;
+
+            // validate input
+
+            if (str.trim().length == 0){
+                //handle no input
+                return;
+            }
+
+            if (emailPattern.test(str))
+            {
+                // create email querystring
+                requestUrl += `?q=${str.replace(emailMask,'')}+in:email@type=Users&utf8=✓`;
+            }
+            else
+            {
+                let nameArr = str.replace(whitespacePattern,' ').split(' ');
+                console.log(nameArr,nameArr.length);
+                if (nameArr.length == 1) {
+                    //create partial name querystring
+                    requestUrl += `?q=${nameArr[0]}+in:fullname&type=Users`;
+                }
+                else {
+                    // create full name querystring
+                    requestUrl += `?q=fullname:${nameArr.join('+')}&type=Users`;
+                }
+            }
+            console.log(requestUrl);
+            fetch(requestUrl)
+                .then(response => response.json())
+                .then(json => {                
+                    console.log(`Returned ${json.total_count} results`);
+                    this.searchResults = json.items;
+                });
+        }
+    }
+});
+
+</script>
+
+</html>
