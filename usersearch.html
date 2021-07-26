@@ -12,6 +12,10 @@
         select {
             width: 50px;
         }
+        img {
+            height: 150px;
+            width: 150px;
+        }
         .search-container {
             margin: auto;
             width: 50%;
@@ -50,6 +54,19 @@
             padding: 10px;
             margin-bottom: 3px;
         }
+        .profileblock {
+            display: inline-block;
+            vertical-align: middle;
+            margin-right: 30px;
+        }
+        .profileblock span {
+            display: inline-block;
+            width: 100px;
+            margin: 4px 0px 4px 0px;
+        }
+        .profileblock h4 {
+            display: inline;
+        }
     </style>
 </head>
 
@@ -74,7 +91,7 @@
             </div>
             <div id=pagenumber-select">
                 <span>Page</span>
-                <select v-model="currentPage" v-on:change="searchClick">
+                <select v-model="currentPage" v-on:change="doSearch">
                    <option v-for="index in totalPages"
                                :value="index">{{index}}</option>
                 </select>
@@ -105,17 +122,27 @@ const urlBase = 'https://api.github.com/search/users';
 Vue.component('searchresult',{
     props: ['user'],
     template: `<div id="result" class="result-container__result">
-                    <p>Row: {{user.id}}
-                    <p>Username: {{user.login}}</p>
-                    <p>Avatar: {{user.avatar_url}}</p>
+                    <div class="profileblock">
+                        <a :href="user.avatar_url" target="_new"><img :src="user.avatar_url"></a>
+                    </div>
+                    <div class="profileblock">
+                        <span>Username</span><h4>{{user.login}}</h4><br>
+                        <span>Real Name</span><h4>{{user.name}}</h4><br>
+                        <span>Email</span><h4>{{user.email}}</h4><br>
+                        <span>Profile</span><a :href="user.html_url" target="_new"><h4>{{user.html_url}}</h4></a><br>
+                        <span>Location</span><h4>{{user.location}}</h4>
+                    </div>
+                    <div class="profileblock">
+                        <span>Number of public repositories</span>
+                        <h1>{{user.public_repos}}</h1>
+                    </div>
+                    <div class="profileblock">
+                        <span>Account created</span>{{user.created_at}}
+                        <span>Account updated</span>{{user.updated_at}}
+                    </div>
                </div>`
 });
-                // <p>Location: {{user.}}</p>
-                // <p>Real Name: {{user.}}</p>
-                // <p>Email: {{user.}}</p>
-                // <p>Number of public repositories: {{user.}}</p>
-                // <p>Account created: {{user.}}</p>
-                // <p>Account updated: {{user.}}</p>
+                    
 
 var ghSearchApp = new Vue({
     el: '#gh-search-app',
@@ -140,12 +167,18 @@ var ghSearchApp = new Vue({
         },
         pageSizing: function() {
             this.currentPage = 1;
-            this.searchClick();
+            this.doSearch();
         },
         newSearchInput: function() {
             this.currentPage = 1;
         },
         searchClick: function() {
+            this.doSearch(resultcount => {
+                if (resultcount > 1000)
+                    alert(`${resultcount} results found, viewing the first 1000`);
+            });
+        },
+        doSearch: function(callback) {
             let requestUrl = urlBase;
             let str = this.searchInput;
 
@@ -181,13 +214,21 @@ var ghSearchApp = new Vue({
             requestUrl += `&page=${this.currentPage}`;
 
             console.log(requestUrl);
-            // console.log(`Returned ${json.total_count} results`);
+            this.searchResults = [];
+
             fetch(requestUrl)
                 .then(response => response.json())
-                .then(json => {                
+                .then(json => {               
                     this.totalPages = Math.ceil(Math.min(json.total_count,1000)/this.pageSize);
-                    this.searchResults = json.items;
-                });
+                    json.items.forEach(result => {
+                        fetch(result.url)
+                            .then(response => response.json())
+                            .then(user => this.searchResults.push(user));
+                    });
+                    // I don't like that this alert is buried here
+                    if (callback instanceof Function)
+                        callback(json.total_count);
+                })
         }
     }
 });
