@@ -28,6 +28,13 @@
             margin: 0;
             padding: 0;
         }
+        .result-throttle {
+            width: 15%;
+            margin: auto;
+            padding-bottom: 25px;
+            padding-top: 25px;
+            white-space: nowrap;
+        }
         .result-container {
             margin: 10px;
         }
@@ -45,13 +52,33 @@
         <div id="search-container" class="search-container">
             <input class="search-container__input" v-model="searchInput" placeholder="Enter name or email to search">
             <button class="search-container__button" v-on:click="searchClick">Search</button>
-            <button class="search-container__button" v-on:click="resetClick">Reset</button>
+            <button class="search-container__button" v-on:click="resetClick">Reset</button>            
+        </div>
+        <div id="result-throttle-top" class="result-throttle" v-if="hasResults">
+            <span>Results per page</span>
+            <select v-model="pageSize" v-on:change="searchClick">
+                <option value="5">5</option>
+                <option value="10">10</option>
+                <option value="25">25</option>
+                <option value="50">50</option>
+                <option value="100">100</option>
+            </select>
         </div>
         <div id="result-container" class="result-container">
             <searchresult v-for="row in searchResults"
                           v-bind:user="row"
                           v-bind:key="row.id">
             </searchresult>
+        </div>
+        <div id="result-throttle-bottom" class="result-throttle">
+            <span>Results per page</span>
+            <select v-model="pageSize" v-on:change="searchClick">
+                <option value="5">5</option>
+                <option value="10">10</option>
+                <option value="25">25</option>
+                <option value="50">50</option>
+                <option value="100">100</option>
+            </select>
         </div>
     </div>   
 
@@ -71,6 +98,7 @@ const urlBase = 'https://api.github.com/search/users';
 Vue.component('searchresult',{
     props: ['user'],
     template: `<div id="result" class="result-container__result">
+                    <p>Row: {{user.id}}
                     <p>Username: {{user.login}}</p>
                     <p>Avatar: {{user.avatar_url}}</p>
                </div>`
@@ -87,12 +115,19 @@ var ghSearchApp = new Vue({
     el: '#gh-search-app',
     data: {
         searchInput: '',
-        searchResults: []
+        searchResults: [],
+        pageSize: 5
+    },
+    computed: {
+        hasResults: function() {
+            return this.searchResults.length > 0;
+        }
     },
     methods: {
         resetClick: function() {
             this.searchInput = '';
             this.searchResults = [];
+            console.log(this.pageSize);
         },
         searchClick: function() {
             let requestUrl = urlBase;
@@ -105,6 +140,7 @@ var ghSearchApp = new Vue({
                 return;
             }
 
+            // Generate querystring based on search input
             if (emailPattern.test(str))
             {
                 // create email querystring
@@ -123,6 +159,10 @@ var ghSearchApp = new Vue({
                     requestUrl += `?q=fullname:${nameArr.join('+')}&type=Users`;
                 }
             }
+
+            // Apply pagination settings
+            requestUrl += `&per_page=${this.pageSize}`;
+
             console.log(requestUrl);
             fetch(requestUrl)
                 .then(response => response.json())
