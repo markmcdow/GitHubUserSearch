@@ -9,6 +9,9 @@
             margin: 0;
             padding-top: 25px;
         }
+        select {
+            width: 50px;
+        }
         .search-container {
             margin: auto;
             width: 50%;
@@ -28,12 +31,16 @@
             margin: 0;
             padding: 0;
         }
-        .result-throttle {
-            width: 15%;
+        .result-control {
+            width: 35%;
             margin: auto;
             padding-bottom: 25px;
             padding-top: 25px;
             white-space: nowrap;
+        }
+        .result-control div {
+            display: inline;
+            margin: 0px 20px 0px 20px;
         }
         .result-container {
             margin: 10px;
@@ -50,35 +57,35 @@
 
     <div id="gh-search-app">
         <div id="search-container" class="search-container">
-            <input class="search-container__input" v-model="searchInput" placeholder="Enter name or email to search">
+            <input class="search-container__input" v-model="searchInput" v-on:change="newSearchInput" placeholder="Enter name or email to search">
             <button class="search-container__button" v-on:click="searchClick">Search</button>
             <button class="search-container__button" v-on:click="resetClick">Reset</button>            
         </div>
-        <div id="result-throttle-top" class="result-throttle" v-if="hasResults">
-            <span>Results per page</span>
-            <select v-model="pageSize" v-on:change="searchClick">
-                <option value="5">5</option>
-                <option value="10">10</option>
-                <option value="25">25</option>
-                <option value="50">50</option>
-                <option value="100">100</option>
-            </select>
-        </div>
+        <div id="result-control" class="result-control">
+            <div id="pagesize-select">
+                <span>Results per page</span>
+                <select v-model="pageSize" v-on:change="pageSizing">
+                    <option value="5">5</option>
+                    <option value="10">10</option>
+                    <option value="25">25</option>
+                    <option value="50">50</option>
+                    <option value="100">100</option>
+                </select>
+            </div>
+            <div id=pagenumber-select">
+                <span>Page</span>
+                <select v-model="currentPage" v-on:change="searchClick">
+                   <option v-for="index in totalPages"
+                               :value="index">{{index}}</option>
+                </select>
+                <span>of {{totalPages}}</span>
+            </div>            
+         </div>
         <div id="result-container" class="result-container">
             <searchresult v-for="row in searchResults"
                           v-bind:user="row"
                           v-bind:key="row.id">
             </searchresult>
-        </div>
-        <div id="result-throttle-bottom" class="result-throttle">
-            <span>Results per page</span>
-            <select v-model="pageSize" v-on:change="searchClick">
-                <option value="5">5</option>
-                <option value="10">10</option>
-                <option value="25">25</option>
-                <option value="50">50</option>
-                <option value="100">100</option>
-            </select>
         </div>
     </div>   
 
@@ -102,7 +109,7 @@ Vue.component('searchresult',{
                     <p>Username: {{user.login}}</p>
                     <p>Avatar: {{user.avatar_url}}</p>
                </div>`
-})
+});
                 // <p>Location: {{user.}}</p>
                 // <p>Real Name: {{user.}}</p>
                 // <p>Email: {{user.}}</p>
@@ -110,13 +117,14 @@ Vue.component('searchresult',{
                 // <p>Account created: {{user.}}</p>
                 // <p>Account updated: {{user.}}</p>
 
-
 var ghSearchApp = new Vue({
     el: '#gh-search-app',
     data: {
         searchInput: '',
         searchResults: [],
-        pageSize: 5
+        pageSize: 5,
+        currentPage: 1,
+        totalPages: 1
     },
     computed: {
         hasResults: function() {
@@ -127,7 +135,15 @@ var ghSearchApp = new Vue({
         resetClick: function() {
             this.searchInput = '';
             this.searchResults = [];
-            console.log(this.pageSize);
+            this.pageSize = 5;
+            this.currentPage = 1;
+        },
+        pageSizing: function() {
+            this.currentPage = 1;
+            this.searchClick();
+        },
+        newSearchInput: function() {
+            this.currentPage = 1;
         },
         searchClick: function() {
             let requestUrl = urlBase;
@@ -162,12 +178,14 @@ var ghSearchApp = new Vue({
 
             // Apply pagination settings
             requestUrl += `&per_page=${this.pageSize}`;
+            requestUrl += `&page=${this.currentPage}`;
 
             console.log(requestUrl);
+            // console.log(`Returned ${json.total_count} results`);
             fetch(requestUrl)
                 .then(response => response.json())
                 .then(json => {                
-                    console.log(`Returned ${json.total_count} results`);
+                    this.totalPages = Math.ceil(Math.min(json.total_count,1000)/this.pageSize);
                     this.searchResults = json.items;
                 });
         }
